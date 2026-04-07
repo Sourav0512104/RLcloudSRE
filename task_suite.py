@@ -5,7 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from .simulator import CloudSreRlSimulator
+try:
+    from .simulator import CloudSreRlSimulator
+except ImportError:
+    from simulator import CloudSreRlSimulator
 
 
 @dataclass(frozen=True, slots=True)
