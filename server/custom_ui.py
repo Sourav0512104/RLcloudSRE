@@ -396,12 +396,12 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
                 )
 
         with gr.Row():
-            reward_plot = gr.LinePlot(
-                x="Step",
-                y="Reward",
+            reward_plot = gr.Dataframe(
+                headers=["Step", "Reward"],
                 value=[],
                 label="Reward Over Time",
-                title="Reward Trend",
+                interactive=False,
+                wrap=True,
             )
             action_table = gr.Dataframe(
                 headers=[
