@@ -22,6 +22,71 @@ except ImportError:
 
 TASK_MAP = {task.task_id: task for task in list_tasks()}
 
+CUSTOM_UI_CSS = """
+.gradio-container {
+  background:
+    radial-gradient(circle at top left, rgba(17, 138, 178, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(6, 214, 160, 0.15), transparent 24%),
+    linear-gradient(180deg, #f4fbff 0%, #edf7f2 100%);
+}
+.hero-shell {
+  padding: 20px 24px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #12344d 0%, #1f6f78 55%, #3ba99c 100%);
+  color: #ffffff;
+  box-shadow: 0 18px 40px rgba(18, 52, 77, 0.18);
+  margin-bottom: 12px;
+}
+.hero-shell h1, .hero-shell p {
+  color: #ffffff !important;
+}
+.info-shell {
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(18, 52, 77, 0.08);
+  box-shadow: 0 8px 24px rgba(18, 52, 77, 0.08);
+}
+.section-shell {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(18, 52, 77, 0.08);
+  box-shadow: 0 10px 26px rgba(18, 52, 77, 0.08);
+}
+.metric-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%);
+  border: 1px solid rgba(18, 52, 77, 0.08);
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 20px rgba(18, 52, 77, 0.08);
+  min-height: 94px;
+}
+.metric-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #587387;
+  margin-bottom: 6px;
+}
+.metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #12344d;
+}
+.metric-hint {
+  font-size: 12px;
+  color: #6d8798;
+  margin-top: 6px;
+}
+.action-note {
+  padding: 12px 14px;
+  border-left: 4px solid #118ab2;
+  background: rgba(17, 138, 178, 0.08);
+  border-radius: 12px;
+}
+"""
+
 
 def _format_metrics(obs: dict[str, Any]) -> tuple[str, str, str, str, str, str]:
     return (
@@ -34,7 +99,29 @@ def _format_metrics(obs: dict[str, Any]) -> tuple[str, str, str, str, str, str]:
     )
 
 
-def _telemetry_rows(obs: dict[str, Any]) -> list[list[str]]:
+def _metric_html(label: str, value: str, hint: str) -> str:
+    return (
+        f"<div class='metric-card'>"
+        f"<div class='metric-label'>{label}</div>"
+        f"<div class='metric-value'>{value}</div>"
+        f"<div class='metric-hint'>{hint}</div>"
+        f"</div>"
+    )
+
+
+def _metric_panel(obs: dict[str, Any]) -> tuple[str, str, str, str, str, str]:
+    latency, availability, cost, budget, queue, incident = _format_metrics(obs)
+    return (
+        _metric_html("Latency", latency, "Request response speed. Lower is better."),
+        _metric_html("Availability", availability, "How often the service stays up. Higher is better."),
+        _metric_html("Hourly Cost", cost, "Estimated infra spend for the current operating point."),
+        _metric_html("Error Budget", budget, "Reliability headroom before SLO trouble."),
+        _metric_html("Queue Depth", queue, "How much work is backing up. Lower is better."),
+        _metric_html("Incident Severity", incident, "Operational trouble level. Lower is better."),
+    )
+
+
+def _telemetry_rows(obs: dict[str, Any], reward: float | None = None) -> list[list[str]]:
     return [
         ["Incoming RPM", f"{obs.get('incoming_rpm', 0.0):.2f}"],
         ["Effective RPM", f"{obs.get('effective_rpm', 0.0):.2f}"],
@@ -47,7 +134,7 @@ def _telemetry_rows(obs: dict[str, Any]) -> list[list[str]]:
         ["Utilization", f"{obs.get('utilization', 0.0):.2f}"],
         ["Error Rate", f"{obs.get('error_rate', 0.0):.4f}"],
         ["SLO Burn Rate", f"{obs.get('slo_burn_rate', 0.0):.2f}"],
-        ["Reward", f"{obs.get('reward', 0.0):.3f}"],
+        ["Reward", f"{(reward if reward is not None else obs.get('reward', 0.0)):.3f}"],
     ]
 
 
@@ -89,6 +176,19 @@ def _task_description(task_name: str) -> str:
         - `incident_recovery`: the system is already having trouble and you must protect reliability.
         """
     ).strip()
+
+
+def _hero_banner() -> str:
+    return """
+    <div class="hero-shell">
+      <h1>Cloud SRE Mission Control</h1>
+      <p>
+        This dashboard turns the environment into an operator training console.
+        Explore incident response, cost tuning, and traffic spike management with presets,
+        manual controls, or an LLM suggestion.
+      </p>
+    </div>
+    """
 
 
 def _beginner_guide() -> str:
@@ -267,7 +367,7 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
         data = await web_manager.reset_environment({"task_name": task_name})
         obs = data["observation"]
         logs = web_manager.episode_state.model_dump().get("action_logs", [])
-        latency, availability, cost, budget, queue, incident = _format_metrics(obs)
+        latency, availability, cost, budget, queue, incident = _metric_panel(obs)
         return (
             latency,
             availability,
@@ -275,7 +375,7 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
             budget,
             queue,
             incident,
-            _telemetry_rows(obs),
+            _telemetry_rows(obs, reward=float(data.get("reward") or 0.0)),
             _reward_history(logs),
             _action_history(logs),
             _explain(obs),
@@ -301,7 +401,7 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
         data = await web_manager.step_environment(action.model_dump())
         obs = data["observation"]
         logs = web_manager.episode_state.model_dump().get("action_logs", [])
-        latency, availability, cost, budget, queue, incident = _format_metrics(obs)
+        latency, availability, cost, budget, queue, incident = _metric_panel(obs)
         comparison = (
             _compare_to_baseline(snapshot, action)
             if snapshot is not None
@@ -314,7 +414,7 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
             budget,
             queue,
             incident,
-            _telemetry_rows(obs),
+            _telemetry_rows(obs, reward=float(data.get("reward") or 0.0)),
             _reward_history(logs),
             _action_history(logs),
             _explain(obs),
@@ -331,7 +431,10 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
         current = web_manager.episode_state.current_observation
         if not current:
             raise gr.Error("Reset the scenario first so the LLM has telemetry to analyze.")
-        action, explanation = _llm_action(task_name, current)
+        try:
+            action, explanation = _llm_action(task_name, current)
+        except Exception as exc:
+            return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, f"LLM policy unavailable: {exc}")
         return (
             action.replica_delta,
             action.cpu_delta,
@@ -342,9 +445,9 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
             explanation,
         )
 
-    with gr.Blocks() as demo:
-        gr.Markdown("# Cloud SRE Control Center")
-        with gr.Accordion("What Am I Looking At?", open=True):
+    with gr.Blocks(css=CUSTOM_UI_CSS) as demo:
+        gr.HTML(_hero_banner())
+        with gr.Accordion("What Am I Looking At?", open=True, elem_classes=["info-shell"]):
             gr.Markdown(_beginner_guide())
 
         with gr.Row():
@@ -357,19 +460,22 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
             llm_btn = gr.Button("Ask LLM Policy")
             step_btn = gr.Button("Apply Action", variant="primary")
 
-        task_info = gr.Markdown(_task_description("traffic_spike_response"))
+        task_info = gr.Markdown(_task_description("traffic_spike_response"), elem_classes=["info-shell"])
 
         with gr.Row():
-            latency = gr.Textbox(label="Latency", interactive=False)
-            availability = gr.Textbox(label="Availability", interactive=False)
-            cost = gr.Textbox(label="Hourly Cost", interactive=False)
-            budget = gr.Textbox(label="Error Budget", interactive=False)
-            queue = gr.Textbox(label="Queue Depth", interactive=False)
-            incident = gr.Textbox(label="Incident Severity", interactive=False)
+            latency = gr.HTML(_metric_html("Latency", "--", "Request response speed. Lower is better."))
+            availability = gr.HTML(_metric_html("Availability", "--", "How often the service stays up."))
+            cost = gr.HTML(_metric_html("Hourly Cost", "--", "Current infra spend estimate."))
+            budget = gr.HTML(_metric_html("Error Budget", "--", "Remaining SLO reliability headroom."))
+            queue = gr.HTML(_metric_html("Queue Depth", "--", "Backlogged work waiting to be processed."))
+            incident = gr.HTML(_metric_html("Incident Severity", "--", "Operational trouble level."))
 
         with gr.Row():
-            with gr.Column(scale=2):
+            with gr.Column(scale=2, elem_classes=["section-shell"]):
                 gr.Markdown("## Control Knobs")
+                gr.Markdown(
+                    "<div class='action-note'>Start by picking a scenario, then either use a preset, ask the LLM for a suggestion, or move the sliders yourself.</div>"
+                )
                 with gr.Row():
                     replica = gr.Slider(-1, 1, value=0, step=0.1, label="Replica Delta")
                     cpu = gr.Slider(-1, 1, value=0, step=0.1, label="CPU Delta")
@@ -386,7 +492,7 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
                 explanation = gr.Markdown("Reset the environment to begin.")
                 baseline_compare = gr.Markdown("Reset a scenario before comparing actions.")
 
-            with gr.Column(scale=1):
+            with gr.Column(scale=1, elem_classes=["section-shell"]):
                 telemetry_table = gr.Dataframe(
                     headers=["Metric", "Value"],
                     value=[],
@@ -395,13 +501,14 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
                     wrap=True,
                 )
 
-        with gr.Row():
+        with gr.Row(equal_height=True):
             reward_plot = gr.Dataframe(
                 headers=["Step", "Reward"],
                 value=[],
                 label="Reward Over Time",
                 interactive=False,
                 wrap=True,
+                elem_classes=["section-shell"],
             )
             action_table = gr.Dataframe(
                 headers=[
@@ -418,9 +525,10 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
                 label="Recent Actions",
                 interactive=False,
                 wrap=True,
+                elem_classes=["section-shell"],
             )
 
-        raw_json = gr.Code(label="Raw JSON Response", language="json", interactive=False)
+        raw_json = gr.Code(label="Raw JSON Response", language="json", interactive=False, elem_classes=["section-shell"])
 
         task_name.change(lambda name: _task_description(name), inputs=[task_name], outputs=[task_info])
 
