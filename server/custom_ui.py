@@ -23,67 +23,171 @@ except ImportError:
 TASK_MAP = {task.task_id: task for task in list_tasks()}
 
 CUSTOM_UI_CSS = """
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
 .gradio-container {
+  font-family: 'Space Grotesk', sans-serif !important;
   background:
-    radial-gradient(circle at top left, rgba(17, 138, 178, 0.18), transparent 28%),
-    radial-gradient(circle at top right, rgba(6, 214, 160, 0.15), transparent 24%),
-    linear-gradient(180deg, #f4fbff 0%, #edf7f2 100%);
+    radial-gradient(circle at 15% 10%, rgba(0, 194, 168, 0.16), transparent 24%),
+    radial-gradient(circle at 85% 8%, rgba(255, 158, 0, 0.14), transparent 20%),
+    linear-gradient(180deg, #f6fbff 0%, #eef6ff 42%, #eef7f2 100%);
 }
+
+.gradio-container .prose,
+.gradio-container .gr-markdown {
+  color: #183043 !important;
+}
+
+.gradio-container h1,
+.gradio-container h2,
+.gradio-container h3 {
+  font-family: 'Space Grotesk', sans-serif !important;
+  letter-spacing: -0.03em;
+}
+
 .hero-shell {
-  padding: 20px 24px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #12344d 0%, #1f6f78 55%, #3ba99c 100%);
-  color: #ffffff;
-  box-shadow: 0 18px 40px rgba(18, 52, 77, 0.18);
-  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+  padding: 34px 36px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(0, 226, 199, 0.18), transparent 26%),
+    radial-gradient(circle at 78% 30%, rgba(255, 193, 71, 0.18), transparent 22%),
+    linear-gradient(135deg, #081c2a 0%, #0f3057 38%, #136f63 100%);
+  color: #f8fffd;
+  box-shadow: 0 26px 60px rgba(8, 28, 42, 0.24);
+  margin-bottom: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
-.hero-shell h1, .hero-shell p {
+
+.hero-shell::after {
+  content: "";
+  position: absolute;
+  inset: auto -40px -60px auto;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.16), rgba(255,255,255,0));
+}
+
+.hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #d6fff8;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.hero-shell h1 {
   color: #ffffff !important;
+  font-size: 44px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
 }
+
+.hero-shell p {
+  color: #dceff5 !important;
+  max-width: 920px;
+  font-size: 18px;
+  line-height: 1.6;
+  margin: 0;
+}
+
 .info-shell {
   padding: 18px 20px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(18, 52, 77, 0.08);
-  box-shadow: 0 8px 24px rgba(18, 52, 77, 0.08);
-}
-.section-shell {
-  padding: 18px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(18, 52, 77, 0.08);
-  box-shadow: 0 10px 26px rgba(18, 52, 77, 0.08);
+  background: rgba(255, 255, 255, 0.90);
+  border: 1px solid rgba(15, 48, 87, 0.08);
+  box-shadow: 0 10px 28px rgba(15, 48, 87, 0.08);
+  backdrop-filter: blur(12px);
 }
+
+.section-shell {
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 48, 87, 0.08);
+  box-shadow: 0 14px 32px rgba(15, 48, 87, 0.10);
+  backdrop-filter: blur(12px);
+}
+
 .metric-card {
-  background: linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%);
-  border: 1px solid rgba(18, 52, 77, 0.08);
-  border-radius: 18px;
-  padding: 14px 16px;
-  box-shadow: 0 8px 20px rgba(18, 52, 77, 0.08);
-  min-height: 94px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(244,249,252,0.94) 100%);
+  border: 1px solid rgba(15, 48, 87, 0.08);
+  border-radius: 20px;
+  padding: 16px 18px;
+  box-shadow: 0 12px 28px rgba(15, 48, 87, 0.09);
+  min-height: 108px;
 }
+
 .metric-label {
-  font-size: 12px;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #587387;
-  margin-bottom: 6px;
+  color: #5e7b90;
+  margin-bottom: 8px;
 }
+
 .metric-value {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
-  color: #12344d;
+  color: #0d2538;
+  line-height: 1.1;
 }
+
 .metric-hint {
   font-size: 12px;
-  color: #6d8798;
-  margin-top: 6px;
+  color: #698397;
+  margin-top: 8px;
 }
+
 .action-note {
-  padding: 12px 14px;
-  border-left: 4px solid #118ab2;
-  background: rgba(17, 138, 178, 0.08);
-  border-radius: 12px;
+  padding: 14px 16px;
+  border-left: 4px solid #00a6a6;
+  background: linear-gradient(90deg, rgba(0,166,166,0.12), rgba(0,166,166,0.03));
+  border-radius: 14px;
+  color: #0f3057;
+}
+
+.gradio-container button.primary,
+.gradio-container button[variant="primary"] {
+  background: linear-gradient(135deg, #ff7a18 0%, #ffb347 100%) !important;
+  color: #102230 !important;
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 24px rgba(255, 122, 24, 0.24) !important;
+  font-weight: 700 !important;
+}
+
+.gradio-container button.secondary,
+.gradio-container button {
+  border-radius: 14px !important;
+}
+
+.gradio-container textarea,
+.gradio-container input,
+.gradio-container .wrap.svelte-1ipelgc,
+.gradio-container .wrap.svelte-13k62yr {
+  border-radius: 16px !important;
+}
+
+.gradio-container .gr-box,
+.gradio-container .gr-panel,
+.gradio-container .gr-dataframe,
+.gradio-container .gr-code {
+  border-radius: 20px !important;
+}
+
+.gradio-container .gr-dataframe table {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 13px !important;
 }
 """
 
@@ -181,6 +285,7 @@ def _task_description(task_name: str) -> str:
 def _hero_banner() -> str:
     return """
     <div class="hero-shell">
+      <div class="hero-kicker">Live SRE Simulator • Operator Training Console</div>
       <h1>Cloud SRE Mission Control</h1>
       <p>
         This dashboard turns the environment into an operator training console.
