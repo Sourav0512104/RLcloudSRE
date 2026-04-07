@@ -445,7 +445,8 @@ def build_custom_gradio_ui(web_manager, action_fields, metadata, is_chat_env, ti
             explanation,
         )
 
-    with gr.Blocks(css=CUSTOM_UI_CSS) as demo:
+    with gr.Blocks() as demo:
+        gr.HTML(f"<style>{CUSTOM_UI_CSS}</style>")
         gr.HTML(_hero_banner())
         with gr.Accordion("What Am I Looking At?", open=True, elem_classes=["info-shell"]):
             gr.Markdown(_beginner_guide())
