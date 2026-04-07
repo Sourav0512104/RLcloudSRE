@@ -1,3 +1,13 @@
+---
+title: cloudRL_SRE
+emoji: "🛠️"
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+app_port: 8000
+---
+
 # Cloud SRE RL with OpenEnv
 
 This project implements a complete reinforcement learning environment for a cloud SRE scenario and a PPO training stack around it.
