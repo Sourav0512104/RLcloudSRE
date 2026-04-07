@@ -37,9 +37,11 @@ except Exception as e:  # pragma: no cover
 
 try:
     from ..models import CloudSreRlAction, CloudSreRlObservation
+    from .custom_ui import build_custom_gradio_ui
     from .cloud_sre_rl_environment import CloudSreRlEnvironment
 except ImportError:
     from models import CloudSreRlAction, CloudSreRlObservation
+    from server.custom_ui import build_custom_gradio_ui
     from server.cloud_sre_rl_environment import CloudSreRlEnvironment
 
 
@@ -50,6 +52,7 @@ app = create_app(
     CloudSreRlObservation,
     env_name="cloud_sre_rl",
     max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
+    gradio_builder=build_custom_gradio_ui,
 )
 
 
