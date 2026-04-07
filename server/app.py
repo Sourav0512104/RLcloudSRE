@@ -38,7 +38,7 @@ except Exception as e:  # pragma: no cover
 try:
     from ..models import CloudSreRlAction, CloudSreRlObservation
     from .cloud_sre_rl_environment import CloudSreRlEnvironment
-except ModuleNotFoundError:
+except ImportError:
     from models import CloudSreRlAction, CloudSreRlObservation
     from server.cloud_sre_rl_environment import CloudSreRlEnvironment
 
