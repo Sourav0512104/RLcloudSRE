@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Cloud SRE RL with OpenEnv
 
 This project implements a complete reinforcement learning environment for a cloud SRE scenario and a PPO training stack around it.
@@ -95,7 +94,7 @@ MODEL_NAME=<model id>
 HF_TOKEN=<api key>
 ```
 
-The required baseline script is [inference.py](C:\Users\sreen\Desktop\OpenEnv\cloud_sre_rl\inference.py). It:
+The required baseline script is `inference.py`. It:
 - uses the OpenAI client for model decisions
 - enumerates 3 hackathon tasks
 - emits `[START]`, `[STEP]`, and `[END]` structured stdout logs
@@ -112,16 +111,3 @@ The reward combines:
 - low load shedding and action churn
 
 Episodes run for 96 control intervals, which models one day at 15-minute decision resolution.
-=======
----
-title: CloudRL SRE
-emoji: 🐨
-colorFrom: red
-colorTo: red
-sdk: docker
-pinned: false
-short_description: RL agent to manage and regulate cloud systems load
----
-
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
->>>>>>> c0c9d01f91bba3404e0612b226acc0a8c962d357
