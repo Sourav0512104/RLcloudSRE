@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Cloud SRE RL with OpenEnv
 
 This project implements a complete reinforcement learning environment for a cloud SRE scenario and a PPO training stack around it.
@@ -111,3 +112,16 @@ The reward combines:
 - low load shedding and action churn
 
 Episodes run for 96 control intervals, which models one day at 15-minute decision resolution.
+=======
+---
+title: CloudRL SRE
+emoji: 🐨
+colorFrom: red
+colorTo: red
+sdk: docker
+pinned: false
+short_description: RL agent to manage and regulate cloud systems load
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+>>>>>>> c0c9d01f91bba3404e0612b226acc0a8c962d357
