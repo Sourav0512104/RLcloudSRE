@@ -27,10 +27,10 @@ class CloudSreRlEnvironment(Environment):
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self._simulator = CloudSreRlSimulator()
 
-    def reset(self) -> CloudSreRlObservation:
+    def reset(self, task_name: str | None = None) -> CloudSreRlObservation:
         self._state = State(episode_id=str(uuid4()), step_count=0)
         observation = self._simulator.reset()
-        task_name = os.getenv("CLOUD_SRE_RL_TASK")
+        task_name = task_name or os.getenv("CLOUD_SRE_RL_TASK")
         if task_name:
             task_map = {task.task_id: task for task in list_tasks()}
             task = task_map.get(task_name)

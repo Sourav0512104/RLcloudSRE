@@ -130,6 +130,45 @@ class CloudSreRlSimulator:
             info=info or {"snapshot": True},
         )
 
+    def get_snapshot(self) -> dict[str, Any]:
+        """Capture mutable simulator state for branching comparisons."""
+
+        return {
+            "step_index": self.step_index,
+            "replicas": self.replicas,
+            "cpu_per_replica": self.cpu_per_replica,
+            "memory_per_replica_gb": self.memory_per_replica_gb,
+            "cache_ratio": self.cache_ratio,
+            "autoheal_level": self.autoheal_level,
+            "load_shedding": self.load_shedding,
+            "queue_depth": self.queue_depth,
+            "error_budget_remaining": self.error_budget_remaining,
+            "incident_severity": self.incident_severity,
+            "last_action": self.last_action.copy(),
+            "last_workload": self.last_workload,
+            "seed_value": self.seed_value,
+            "rng_state": self.rng.bit_generator.state,
+        }
+
+    def load_snapshot(self, snapshot: dict[str, Any]) -> None:
+        """Restore mutable simulator state from a snapshot."""
+
+        self.step_index = snapshot["step_index"]
+        self.replicas = snapshot["replicas"]
+        self.cpu_per_replica = snapshot["cpu_per_replica"]
+        self.memory_per_replica_gb = snapshot["memory_per_replica_gb"]
+        self.cache_ratio = snapshot["cache_ratio"]
+        self.autoheal_level = snapshot["autoheal_level"]
+        self.load_shedding = snapshot["load_shedding"]
+        self.queue_depth = snapshot["queue_depth"]
+        self.error_budget_remaining = snapshot["error_budget_remaining"]
+        self.incident_severity = snapshot["incident_severity"]
+        self.last_action = snapshot["last_action"].copy()
+        self.last_workload = snapshot["last_workload"]
+        self.seed_value = snapshot["seed_value"]
+        self.rng = np.random.default_rng()
+        self.rng.bit_generator.state = snapshot["rng_state"]
+
     def step(self, action: CloudSreRlAction) -> tuple[dict[str, Any], float, bool, dict[str, Any]]:
         action_vector = np.array(
             [
