@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openenv-cloud_sre_rl"
+version = "0.1.0"
+description = "OpenEnv cloud SRE environment with a PPO training stack"
+requires-python = ">=3.10"
+dependencies = [
+    "openenv-core[core]>=0.2.2",
+    "numpy>=1.26.0",
+    "openai>=2.0.0",
+]
+
+[project.optional-dependencies]
+train = [
+    "gymnasium>=0.29.1",
+    "stable-baselines3>=2.3.2",
+    "torch>=2.2.0",
+    "tensorboard>=2.16.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+server = "cloud_sre_rl.server.app:main"
+train-ppo = "cloud_sre_rl.train_ppo:main"
+evaluate-ppo = "cloud_sre_rl.evaluate:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = ["cloud_sre_rl", "cloud_sre_rl.server"]
+package-dir = { "cloud_sre_rl" = ".", "cloud_sre_rl.server" = "server" }
