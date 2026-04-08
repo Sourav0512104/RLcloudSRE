@@ -1,5 +1,14 @@
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from cloud_sre_rl.simulator import CloudSreRlSimulator
 from cloud_sre_rl.task_suite import CloudSreTaskRubric, grade_task, list_tasks
+from graders.grader import grade
+from tasks.task_registry import load_tasks
 
 
 def test_task_suite_has_three_tasks():
@@ -25,3 +34,18 @@ def test_task_rubric_exposes_three_named_graders():
     assert "tasks.traffic_spike_response" in named
     assert "tasks.cost_efficiency" in named
     assert "tasks.incident_recovery" in named
+
+
+def test_validator_task_registry_has_three_tasks():
+    tasks = load_tasks()
+    assert len(tasks) >= 3
+    assert {task["id"] for task in tasks} >= {
+        "traffic_spike_response",
+        "cost_efficiency",
+        "incident_recovery",
+    }
+
+
+def test_validator_grader_returns_normalized_score():
+    score = grade({}, {"id": "traffic_spike_response"})
+    assert 0.0 <= score <= 1.0

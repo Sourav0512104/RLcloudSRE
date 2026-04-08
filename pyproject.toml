@@ -32,5 +32,5 @@ evaluate-ppo = "cloud_sre_rl.evaluate:main"
 
 [tool.setuptools]
 include-package-data = true
-packages = ["cloud_sre_rl", "cloud_sre_rl.server"]
-package-dir = { "cloud_sre_rl" = ".", "cloud_sre_rl.server" = "server" }
+packages = ["cloud_sre_rl", "cloud_sre_rl.server", "tasks", "graders"]
+package-dir = { "cloud_sre_rl" = ".", "cloud_sre_rl.server" = "server", "tasks" = "tasks", "graders" = "graders" }
