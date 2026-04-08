@@ -4,12 +4,14 @@ Inference script for the Cloud SRE RL hackathon submission.
 
 from __future__ import annotations
 
+import asyncio
+import inspect
 import json
 import os
 import sys
 import textwrap
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from openai import OpenAI
 
@@ -137,11 +139,21 @@ def get_model_action(client: OpenAI, task_spec, step: int, telemetry: dict, hist
 
 
 def connect_env() -> CloudSreRlEnv:
+    env_client: Any
     if IMAGE_NAME:
-        return CloudSreRlEnv.from_docker_image(IMAGE_NAME)
-    if ENV_BASE_URL:
-        return CloudSreRlEnv(base_url=ENV_BASE_URL)
-    return CloudSreRlEnv(base_url="http://127.0.0.1:8000")
+        env_client = CloudSreRlEnv.from_docker_image(IMAGE_NAME)
+    elif ENV_BASE_URL:
+        env_client = CloudSreRlEnv(base_url=ENV_BASE_URL)
+    else:
+        env_client = CloudSreRlEnv(base_url="http://127.0.0.1:8000")
+
+    # openenv clients are async-first. Normalize both direct construction and
+    # async factory helpers onto the sync wrapper used by this script.
+    if inspect.isawaitable(env_client):
+        env_client = asyncio.run(env_client)
+    if hasattr(env_client, "sync"):
+        env_client = env_client.sync()
+    return env_client
 
 
 def main() -> None:
@@ -213,6 +225,8 @@ def main() -> None:
             graders = grade_task(task_spec.task_id, initial_snapshot, final_snapshot, rewards)
             score = min(max(float(graders["aggregate"]), 0.0), 1.0)
             success = score >= SUCCESS_SCORE_THRESHOLD
+    except Exception as exc:
+        print(f"[ERROR] {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
 
     finally:
         if env is not None:
