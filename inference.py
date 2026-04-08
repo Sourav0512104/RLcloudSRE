@@ -167,22 +167,27 @@ async def connect_env() -> CloudSreRlEnv:
 
 
 async def main() -> None:
-    client = create_llm_client()
-    warmup_llm_proxy(client)
-    task_spec = get_task_spec()
-
     history: List[str] = []
     rewards: List[float] = []
     steps_taken = 0
     score = 0.0
     success = False
     env: Optional[CloudSreRlEnv] = None
+    client: Optional[OpenAI] = None
+    task_spec = None
     initial_snapshot = None
     final_snapshot = None
 
     log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
 
     try:
+        client = create_llm_client()
+        try:
+            warmup_llm_proxy(client)
+        except Exception as exc:
+            print(f"[DEBUG] Proxy warmup failed: {exc}", file=sys.stderr, flush=True)
+
+        task_spec = get_task_spec()
         env = await connect_env()
         result = await env.reset()
         initial_snapshot = result.observation.model_dump()
@@ -232,7 +237,7 @@ async def main() -> None:
             if done:
                 break
 
-        if initial_snapshot is not None and final_snapshot is not None:
+        if task_spec is not None and initial_snapshot is not None and final_snapshot is not None:
             graders = grade_task(task_spec.task_id, initial_snapshot, final_snapshot, rewards)
             score = min(max(float(graders["aggregate"]), 0.0), 1.0)
             success = score >= SUCCESS_SCORE_THRESHOLD
@@ -249,4 +254,8 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as exc:
+        print(f"[FATAL] {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+        log_end(success=False, steps=0, score=0.0, rewards=[])
