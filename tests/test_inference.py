@@ -46,25 +46,23 @@ def test_connect_env_wraps_direct_client(monkeypatch):
     assert inference.connect_env() is sync_env
 
 
-def test_require_api_key_uses_validator_variable(monkeypatch):
+def test_create_llm_client_uses_validator_env_vars(monkeypatch):
     inference = importlib.import_module("cloud_sre_rl.inference")
 
-    monkeypatch.setattr(inference, "API_KEY", "validator-key")
+    captured = {}
 
-    assert inference.require_api_key() == "validator-key"
+    class DummyOpenAI:
+        def __init__(self, *, base_url, api_key):
+            captured["base_url"] = base_url
+            captured["api_key"] = api_key
 
+    monkeypatch.setenv("API_BASE_URL", "https://proxy.example/v1")
+    monkeypatch.setenv("API_KEY", "validator-key")
+    monkeypatch.setattr(inference, "OpenAI", DummyOpenAI)
 
-def test_require_api_key_allows_hf_token_fallback(monkeypatch):
-    inference = importlib.import_module("cloud_sre_rl.inference")
+    inference.create_llm_client()
 
-    monkeypatch.setattr(inference, "API_KEY", "hf-token-value")
-
-    assert inference.require_api_key() == "hf-token-value"
-
-
-def test_require_api_base_url_requires_validator_proxy(monkeypatch):
-    inference = importlib.import_module("cloud_sre_rl.inference")
-
-    monkeypatch.setattr(inference, "API_BASE_URL", "https://proxy.example/v1")
-
-    assert inference.require_api_base_url() == "https://proxy.example/v1"
+    assert captured == {
+        "base_url": "https://proxy.example/v1",
+        "api_key": "validator-key",
+    }
