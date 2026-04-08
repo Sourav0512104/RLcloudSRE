@@ -11,11 +11,11 @@ from openenv.core.env_server.types import State
 try:
     from ..models import CloudSreRlAction, CloudSreRlObservation
     from ..simulator import CloudSreRlSimulator
-    from ..task_suite import list_tasks
+    from ..task_suite import CloudSreTaskRubric, list_tasks
 except ImportError:
     from models import CloudSreRlAction, CloudSreRlObservation
     from simulator import CloudSreRlSimulator
-    from task_suite import list_tasks
+    from task_suite import CloudSreTaskRubric, list_tasks
 
 
 class CloudSreRlEnvironment(Environment):
@@ -24,8 +24,10 @@ class CloudSreRlEnvironment(Environment):
     SUPPORTS_CONCURRENT_SESSIONS: bool = True
 
     def __init__(self):
+        super().__init__(rubric=CloudSreTaskRubric())
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self._simulator = CloudSreRlSimulator()
+        self._active_task_id = list_tasks()[0].task_id
 
     def reset(self, task_name: str | None = None) -> CloudSreRlObservation:
         self._state = State(episode_id=str(uuid4()), step_count=0)
@@ -37,6 +39,9 @@ class CloudSreRlEnvironment(Environment):
             if task is not None:
                 task.setup(self._simulator)
                 observation = self._simulator.observe(info={"task_id": task_name, "reset": True})
+                self._active_task_id = task_name
+        if self.rubric is not None and isinstance(self.rubric, CloudSreTaskRubric):
+            self.rubric.reset_for_task(self._active_task_id, observation)
         return CloudSreRlObservation(**observation)
 
     def step(self, action: CloudSreRlAction) -> CloudSreRlObservation:  # type: ignore[override]
@@ -44,7 +49,10 @@ class CloudSreRlEnvironment(Environment):
         self._state.step_count += 1
         if done:
             observation["metadata"]["terminal_step"] = self._state.step_count
-        return CloudSreRlObservation(**observation)
+        result = CloudSreRlObservation(**observation)
+        if self.rubric is not None:
+            result.reward = self._apply_rubric(action, result)
+        return result
 
     @property
     def state(self) -> State:

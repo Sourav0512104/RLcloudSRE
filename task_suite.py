@@ -5,9 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
+from openenv.core.rubrics import Rubric, RubricDict
+
 try:
+    from .models import CloudSreRlAction, CloudSreRlObservation
     from .simulator import CloudSreRlSimulator
 except ImportError:
+    from models import CloudSreRlAction, CloudSreRlObservation
     from simulator import CloudSreRlSimulator
 
 
@@ -135,3 +139,57 @@ def grade_task(task_id: str, initial: dict, final: dict, reward_trace: list[floa
 
     graders["aggregate"] = sum(graders.values()) / len(graders)
     return graders
+
+
+class TaskGraderRubric(Rubric):
+    """Expose a task grader through OpenEnv's rubric interface."""
+
+    def __init__(self, task_id: str):
+        super().__init__()
+        self.task_id = task_id
+        self.initial_snapshot: dict | None = None
+        self.reward_trace: list[float] = []
+
+    def reset(self) -> None:
+        self.initial_snapshot = None
+        self.reward_trace = []
+
+    def begin_episode(self, initial_snapshot: dict) -> None:
+        self.initial_snapshot = initial_snapshot
+        self.reward_trace = []
+
+    def forward(self, action: CloudSreRlAction, observation: CloudSreRlObservation) -> float:
+        if self.initial_snapshot is None:
+            self.initial_snapshot = observation.model_dump()
+        reward = float(observation.reward or 0.0)
+        self.reward_trace.append(reward)
+        graders = grade_task(
+            self.task_id,
+            self.initial_snapshot,
+            observation.model_dump(),
+            self.reward_trace,
+        )
+        return float(graders["aggregate"])
+
+
+class CloudSreTaskRubric(Rubric):
+    """Named rubric container exposing one grader per hackathon task."""
+
+    def __init__(self):
+        super().__init__()
+        self.tasks = RubricDict({task.task_id: TaskGraderRubric(task.task_id) for task in TASKS})
+        self.active_task_id = TASKS[0].task_id
+
+    def reset_for_task(self, task_id: str, initial_snapshot: dict) -> None:
+        self.reset()
+        self.active_task_id = task_id
+        task_rubric = self.tasks[task_id]
+        if isinstance(task_rubric, TaskGraderRubric):
+            task_rubric.begin_episode(initial_snapshot)
+
+    def reset(self) -> None:
+        for rubric in self.tasks.values():
+            rubric.reset()
+
+    def forward(self, action: CloudSreRlAction, observation: CloudSreRlObservation) -> float:
+        return self.tasks[self.active_task_id](action, observation)
