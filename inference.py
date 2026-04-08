@@ -22,8 +22,8 @@ if str(ROOT.parent) not in sys.path:
 from cloud_sre_rl import CloudSreRlAction, CloudSreRlEnv
 from cloud_sre_rl.task_suite import grade_task, list_tasks
 
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
-API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
+API_BASE_URL = os.getenv("API_BASE_URL")
 MODEL_NAME = os.getenv("MODEL_NAME") or "openai/gpt-4.1-mini"
 IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME") or os.getenv("IMAGE_NAME")
 ENV_BASE_URL = os.getenv("ENV_BASE_URL")
@@ -64,8 +64,14 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
 
 def require_api_key() -> str:
     if not API_KEY:
-        raise RuntimeError("Missing required environment variable: HF_TOKEN")
+        raise RuntimeError("Missing required environment variable: API_KEY or HF_TOKEN")
     return API_KEY
+
+
+def require_api_base_url() -> str:
+    if not API_BASE_URL:
+        raise RuntimeError("Missing required environment variable: API_BASE_URL")
+    return API_BASE_URL
 
 
 def get_task_spec():
@@ -157,7 +163,7 @@ def connect_env() -> CloudSreRlEnv:
 
 
 def main() -> None:
-    client = OpenAI(base_url=API_BASE_URL, api_key=require_api_key())
+    client = OpenAI(base_url=require_api_base_url(), api_key=require_api_key())
     task_spec = get_task_spec()
 
     history: List[str] = []

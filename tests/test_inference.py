@@ -44,3 +44,27 @@ def test_connect_env_wraps_direct_client(monkeypatch):
     monkeypatch.setattr(inference, "CloudSreRlEnv", DummyClient)
 
     assert inference.connect_env() is sync_env
+
+
+def test_require_api_key_uses_validator_variable(monkeypatch):
+    inference = importlib.import_module("cloud_sre_rl.inference")
+
+    monkeypatch.setattr(inference, "API_KEY", "validator-key")
+
+    assert inference.require_api_key() == "validator-key"
+
+
+def test_require_api_key_allows_hf_token_fallback(monkeypatch):
+    inference = importlib.import_module("cloud_sre_rl.inference")
+
+    monkeypatch.setattr(inference, "API_KEY", "hf-token-value")
+
+    assert inference.require_api_key() == "hf-token-value"
+
+
+def test_require_api_base_url_requires_validator_proxy(monkeypatch):
+    inference = importlib.import_module("cloud_sre_rl.inference")
+
+    monkeypatch.setattr(inference, "API_BASE_URL", "https://proxy.example/v1")
+
+    assert inference.require_api_base_url() == "https://proxy.example/v1"
