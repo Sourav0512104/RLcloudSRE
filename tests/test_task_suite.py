@@ -6,6 +6,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from cloud_sre_rl.simulator import CloudSreRlSimulator
+from cloud_sre_rl.tasks import TaskGrader, list_task_dicts
 from cloud_sre_rl.task_suite import CloudSreTaskRubric, grade_task, list_tasks
 from graders.grader import grade
 from tasks.task_registry import load_tasks
@@ -49,3 +50,10 @@ def test_validator_task_registry_has_three_tasks():
 def test_validator_grader_returns_normalized_score():
     score = grade({}, {"id": "traffic_spike_response"})
     assert 0.0 <= score <= 1.0
+
+
+def test_root_tasks_module_exposes_three_tasks_with_graders():
+    tasks = list_task_dicts()
+    assert len(tasks) >= 3
+    assert all(task["has_grader"] for task in tasks)
+    assert 0.0 <= TaskGrader("traffic_spike_response").grade() <= 1.0

@@ -1,16 +1,14 @@
-"""Task registry exports for hackathon validators."""
+"""Root-level task definitions and graders for validator discovery."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
 try:
     from cloud_sre_rl.task_suite import grade_task, list_tasks as _list_task_specs
 except ImportError:
     from task_suite import grade_task, list_tasks as _list_task_specs
-
-from .task_registry import load_tasks
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,18 +78,7 @@ def list_tasks() -> list[TaskDefinition]:
 
 
 def list_task_dicts() -> list[dict[str, Any]]:
-    return [
-        {
-            "id": task.id,
-            "name": task.name,
-            "difficulty": task.difficulty,
-            "description": task.description,
-            "objective": task.objective,
-            "max_steps": task.max_steps,
-            "has_grader": task.has_grader,
-        }
-        for task in TASKS
-    ]
+    return [asdict(task) for task in TASKS]
 
 
 def get_task_by_id(task_id: str) -> TaskDefinition:
@@ -99,14 +86,3 @@ def get_task_by_id(task_id: str) -> TaskDefinition:
         if task.id == task_id:
             return task
     raise KeyError(task_id)
-
-
-__all__ = [
-    "TaskDefinition",
-    "TaskGrader",
-    "TASKS",
-    "get_task_by_id",
-    "list_task_dicts",
-    "list_tasks",
-    "load_tasks",
-]

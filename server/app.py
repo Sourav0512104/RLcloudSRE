@@ -37,10 +37,12 @@ except Exception as e:  # pragma: no cover
 
 try:
     from ..models import CloudSreRlAction, CloudSreRlObservation
+    from ..tasks import list_task_dicts
     from .custom_ui import build_custom_gradio_ui
     from .cloud_sre_rl_environment import CloudSreRlEnvironment
 except ImportError:
     from models import CloudSreRlAction, CloudSreRlObservation
+    from tasks import list_task_dicts
     from server.custom_ui import build_custom_gradio_ui
     from server.cloud_sre_rl_environment import CloudSreRlEnvironment
 
@@ -54,6 +56,12 @@ app = create_app(
     max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
     gradio_builder=build_custom_gradio_ui,
 )
+
+
+@app.get("/tasks")
+def get_tasks():
+    """Expose hackathon task metadata for external validators."""
+    return {"tasks": list_task_dicts()}
 
 
 def main(host: str = "0.0.0.0", port: int = 8000):
