@@ -5,7 +5,6 @@ Inference script for the Cloud SRE RL hackathon submission.
 from __future__ import annotations
 
 import asyncio
-import inspect
 import json
 import os
 import sys
@@ -67,6 +66,19 @@ def create_llm_client() -> OpenAI:
     )
 
 
+def warmup_llm_proxy(client: OpenAI) -> None:
+    client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[
+            {"role": "system", "content": "Reply with READY."},
+            {"role": "user", "content": "READY"},
+        ],
+        temperature=0.0,
+        max_tokens=4,
+        stream=False,
+    )
+
+
 def get_task_spec():
     tasks = {task.task_id: task for task in list_tasks()}
     if TASK_NAME not in tasks:
@@ -120,43 +132,43 @@ def get_model_action(client: OpenAI, task_spec, step: int, telemetry: dict, hist
         },
     }
 
-    completion = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": build_user_prompt(task_spec, step, telemetry, history)},
-        ],
-        temperature=TEMPERATURE,
-        max_tokens=MAX_TOKENS,
-        tool_choice={"type": "function", "function": {"name": "apply_sre_action"}},
-        tools=[tool_schema],
-        stream=False,
-    )
-    tool_call = completion.choices[0].message.tool_calls[0]
-    arguments = json.loads(tool_call.function.arguments)
-    return CloudSreRlAction(**arguments)
+    try:
+        completion = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": build_user_prompt(task_spec, step, telemetry, history)},
+            ],
+            temperature=TEMPERATURE,
+            max_tokens=MAX_TOKENS,
+            tool_choice={"type": "function", "function": {"name": "apply_sre_action"}},
+            tools=[tool_schema],
+            stream=False,
+        )
+        tool_call = completion.choices[0].message.tool_calls[0]
+        arguments = json.loads(tool_call.function.arguments)
+        return CloudSreRlAction(**arguments)
+    except Exception as exc:
+        print(f"[DEBUG] Model request failed: {exc}", file=sys.stderr, flush=True)
+        return CloudSreRlAction()
 
 
-def connect_env() -> CloudSreRlEnv:
+async def connect_env() -> CloudSreRlEnv:
     env_client: Any
     if IMAGE_NAME:
-        env_client = CloudSreRlEnv.from_docker_image(IMAGE_NAME)
+        env_client = await CloudSreRlEnv.from_docker_image(IMAGE_NAME)
     elif ENV_BASE_URL:
         env_client = CloudSreRlEnv(base_url=ENV_BASE_URL)
+        await env_client.connect()
     else:
         env_client = CloudSreRlEnv(base_url="http://127.0.0.1:8000")
-
-    # openenv clients are async-first. Normalize both direct construction and
-    # async factory helpers onto the sync wrapper used by this script.
-    if inspect.isawaitable(env_client):
-        env_client = asyncio.run(env_client)
-    if hasattr(env_client, "sync"):
-        env_client = env_client.sync()
+        await env_client.connect()
     return env_client
 
 
-def main() -> None:
+async def main() -> None:
     client = create_llm_client()
+    warmup_llm_proxy(client)
     task_spec = get_task_spec()
 
     history: List[str] = []
@@ -171,8 +183,8 @@ def main() -> None:
     log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
 
     try:
-        env = connect_env()
-        result = env.reset()
+        env = await connect_env()
+        result = await env.reset()
         initial_snapshot = result.observation.model_dump()
         final_snapshot = initial_snapshot
 
@@ -201,7 +213,7 @@ def main() -> None:
             }
 
             action = get_model_action(client, task_spec, step, telemetry, history)
-            result = env.step(action)
+            result = await env.step(action)
             obs = result.observation
 
             reward = float(result.reward or 0.0)
@@ -230,11 +242,11 @@ def main() -> None:
     finally:
         if env is not None:
             try:
-                env.close()
+                await env.close()
             except Exception:
                 pass
         log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
